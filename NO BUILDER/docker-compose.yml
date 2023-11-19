@@ -1,0 +1,60 @@
+version: '2'
+networks:
+  network_tp: {}
+
+volumes:
+  db_data:
+
+services:
+  db:
+    image: mysql:8.0.27
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    networks:
+      - network_tp
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=1
+      - MYSQL_DATABASE=db_tp
+      - MYSQL_USER=tp
+      - MYSQL_PASSWORD=allo1
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 3s
+      retries: 20
+    expose:
+      - 3306
+      - 33060
+
+  tp_back:
+    image: tit0s/tp_back:1.0
+    ports:
+      - 9090:8080
+    restart: always
+    networks:
+      - network_tp
+    environment:
+      - BACK_PORT=8080
+      - DB_NAME=db_tp
+      - DB_USER=tp
+      - DB_PASSWORD=allo1
+      - DB_HOST=db
+    expose:
+      - 8080
+    depends_on:
+      db:
+        condition: service_healthy
+
+  tp_front:
+    image: tit0s/tp_front:1.0
+    ports:
+      - 9091:80
+    restart: always
+    networks:
+      - network_tp
+    environment:
+      - BACK_PORT=8080
+      - BACK_HOST=tp_back
+    depends_on:
+      - db
+      - tp_back
